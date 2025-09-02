@@ -14,7 +14,7 @@ const httpServer = createServer(app);
 console.log("CORS allowed origin:", process.env.FRONTEND);
 // CORS configuration
 const allowedOrigins = [
-"https://task-management-panscience-innovations-wcv6.onrender.com",
+"https://t-a-s-k-mangement.onrender.com",
   "http://localhost:5173",
   "http://localhost:5174"
 ];

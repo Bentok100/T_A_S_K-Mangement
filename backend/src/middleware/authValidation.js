@@ -1,45 +1,44 @@
 import { userRepository } from "../repository/userRepository.js";
 import { verifyToken } from "../utils/authUtils.js";
 
-export const isAuthenticated = function (req, res, next) {
+export const isAuthenticated = async function (req, res, next) {
     const token = req.headers['x-access-token'];
+
     if (!token) {
         return res.status(400).json({
             success: false,
             message: 'Token is required'
         });
     }
+
     try {
-        const response = verifyToken(token);
-        if (!response) {
-            return res.status(400).json({
+        // Verify token
+        const decoded = verifyToken(token);
+        if (!decoded || !decoded.id) {
+            return res.status(401).json({
                 success: false,
-                message: 'invalid auth token'
+                message: 'Invalid or expired token'
             });
         }
-        const user = userRepository.getUserById(response.id);
+
+        // Fetch user (must await)
+        const user = await userRepository.getUserById(decoded.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
+
+        // Attach user to request for further use
         req.user = user;
         next();
-    } catch (error) {
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid token'
-        });
-    }
-};
 
-export const isAdmin = (req, res, next) => {
-    if (req.user.usertype !== 'admin') {
-        return res.status(403).json({
+    } catch (error) {
+        console.error("Auth Middleware Error:", error);
+        return res.status(500).json({
             success: false,
-            message: "Access denied. Admins only."
+            message: 'Server error during authentication'
         });
     }
-    next();
 };

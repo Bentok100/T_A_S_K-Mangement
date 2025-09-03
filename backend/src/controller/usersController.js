@@ -43,36 +43,27 @@ export const loginController = async function (req, res) {
         const user = await loginService(req.body);
         return res.status(200).json({
             success: true,
-            message:'User Logged in successfully',
+            message: 'User Logged in successfully',
             data: user
-        })
+        });
     } catch (error) {
-     console.error("Error in LogIn controller:", error);
+        console.error("Error in LogIn controller:", error);
+
+        if (error.message === "User Not Found" || error.message === "wrong password") {
+            return res.status(401).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         res.status(500).send({
-        success: false,
-        message: "Internal Server Error",
-        error: error.message
-      });
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
 };
-
-// export const getUserController = async function (req, res) {
-//   try {
-//     const user = await getUserService(req.user.id);
-//     return res.status(200).json({
-//       success: true,
-//       message:'User fetched successfully',
-//       data: user
-//    });
-//   } catch (error) {
-//       console.error("Error in getUser controller:", error);
-//       res.status(500).send({
-//       success: false,
-//       message: "Internal Server Error",
-//       error: error.message
-//     });
-//   }
-// }; 
+ 
 
 export const getUserController = async function (req, res) {
   try {

@@ -2,26 +2,24 @@ import express from "express";
 import { createServer } from "http";
 import cors from "cors";
 import apiRouter from "./src/routes/apiRouter.js";
-// import { PORT } from "./src/config/serverConfig.js";
-// import { FRONTEND } from "./src/config/serverConfig.js";
 import { connectDB } from "./src/config/dbConfig.js";
 import dotenv from "dotenv";
 dotenv.config();
-// build express app
+
 const app = express();
 const httpServer = createServer(app);
 
 console.log("CORS allowed origin:", process.env.FRONTEND);
-// CORS configuration
+
 const allowedOrigins = [
-"https://t-a-s-k-mangement.onrender.com",
+  "https://t-a-s-k-mangement.onrender.com",
   "http://localhost:5173",
   "http://localhost:5174"
 ];
-// cors setup
-app.use(cors({
+
+const corsOptions = {
   origin: function (origin, callback) {
-     console.log('Request Origin:', origin);
+    console.log('Request Origin:', origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -31,22 +29,21 @@ app.use(cors({
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization", "x-access-token"]
-}));
+};
 
-// Middleware
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
-// API Routes
 app.use('/api', apiRouter);
 
-// Test route
 app.get("/", (req, res) => {
-    res.send("API is running...");
+  res.send("API is running...");
 });
 
-// Connect to DB and start server
 connectDB().then(() => {
-    httpServer.listen(process.env.PORT, () =>
-        console.log(`Server running on port ${process.env.PORT}`)
-    );
+  httpServer.listen(process.env.PORT, () =>
+    console.log(`Server running on port ${process.env.PORT}`)
+  );
 });

@@ -21,7 +21,7 @@ export const isAuthenticated = async function (req, res, next) {
             });
         }
 
-        // Fetch user (must await)
+        // Fetch user by ID
         const user = await userRepository.getUserById(decoded.id);
         if (!user) {
             return res.status(404).json({
@@ -30,7 +30,7 @@ export const isAuthenticated = async function (req, res, next) {
             });
         }
 
-        // Attach user to request for further use
+        
         req.user = user;
         next();
 
@@ -38,7 +38,20 @@ export const isAuthenticated = async function (req, res, next) {
         console.error("Auth Middleware Error:", error);
         return res.status(500).json({
             success: false,
-            message: 'Server error during authentication'
+            message: 'Server error during authentication',
+            error: error.message
         });
     }
 };
+
+export const isAdmin = function (req, res, next) {
+    if (req.user && req.user.role === 'admin') {
+        return next();
+    } else {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Admins only.'
+        });
+    }
+};
+

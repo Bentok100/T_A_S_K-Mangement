@@ -12,7 +12,7 @@ import {
   adminRejectTaskController,
   downloadDocumentController  // Make sure this is imported
 } from "../../controller/taskController.js";
-import { isAdmin, isAuthenticated } from "../../middleware/authValidation.js";
+import {isAuthenticated } from "../../middleware/authValidation.js";
 import upload from "../../config/multerConfig.js";  // Import Multer config
 import { userRepository } from "../../repository/userRepository.js";
 

@@ -1,18 +1,23 @@
 import jwt from "jsonwebtoken";
-// import { JWT_SECRET } from "../config/serverConfig.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
+console.log("🔐 JWT_SECRET at startup:", process.env.JWT_SECRET);  // 🔍 Check if it's loaded
+
 export const createToken = function(payload) {
-    return jwt.sign(payload, process.env.JWT_SECRET, {expiresIn: "7d"})
+    console.log("✅ Creating token with payload:", payload);
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 export const verifyToken = async function(token) {
     try {
-        return jwt.verify(token, process.env.JWT_SECRET);
+        console.log("🔍 Verifying token:", token); // ✅ Log incoming token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("✅ Token is valid. Decoded payload:", decoded);
+        return decoded;
     } catch (error) {
-        console.error("JWT Verification Error:", error);
-        return null; // Return null if token is invalid or expired
+        console.error("❌ JWT Verification Error:", error.message);
+        return null;
     }
 };

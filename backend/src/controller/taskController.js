@@ -1,16 +1,20 @@
-import { createTaskService, deleteTaskService, getAllTaskService, getTaskByUserService, updateTaskService} from "../service/taskService.js";
-import {taskRepository} from '../repository/taskRepository.js';
-import upload from '../config/multerConfig.js'; // Import Multer config
+import { createTaskService, deleteTaskService, getAllTaskService, getTaskByUserService, updateTaskService } from "../service/taskService.js";
+import { taskRepository } from '../repository/taskRepository.js';
+import upload from '../config/multerConfig.js';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import Task from '../models/taskModel.js'; // Adjust path as needed
 
-// Modified createTaskController with file upload support
+// Define __dirname for ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Create Task Controller with file upload
 export const createTaskController = async (req, res) => {
     try {
-        // Handle file upload first
+        // Handle file upload middleware
         const uploadMiddleware = upload.array('documents', 3);
-        
         await new Promise((resolve, reject) => {
             uploadMiddleware(req, res, (err) => {
                 if (err) {
@@ -21,12 +25,11 @@ export const createTaskController = async (req, res) => {
             });
         });
 
-        // Now process the rest of the request
         console.log("Request body:", req.body);
         console.log("Uploaded files:", req.files);
 
         const { title, description, deadline, priority } = req.body;
-        const assignedBy = req.user._id;
+        const assignedBy = req.user.id;  // Use consistent req.user.id
         const assignedTo = req.params.userId;
 
         if (!title || !description || !deadline || !priority) {
@@ -45,7 +48,7 @@ export const createTaskController = async (req, res) => {
         const documents = req.files?.map(file => ({
             filename: file.filename,
             originalname: file.originalname,
-            path: file.path.replace(/\\/g, '/'), // Ensure consistent path format
+            path: file.path.replace(/\\/g, '/'), // normalize path
             size: file.size,
             mimetype: file.mimetype
         })) || [];
@@ -61,7 +64,7 @@ export const createTaskController = async (req, res) => {
         };
 
         const createdTask = await createTaskService(taskData);
-        
+
         return res.status(201).json({
             success: true,
             message: "Task created successfully",
@@ -70,26 +73,25 @@ export const createTaskController = async (req, res) => {
 
     } catch (error) {
         console.error("Error in createTaskController:", error);
-        
-        // Clean up any uploaded files on error
+        // Clean up uploaded files on error
         if (req.files?.length) {
             req.files.forEach(file => {
                 fs.unlink(file.path, () => {});
             });
         }
-        
         return res.status(500).json({
             success: false,
             message: error.message || "Internal server error"
         });
     }
 };
-// Add document download controller
+
+// Download Document Controller
 export const downloadDocumentController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
         const docIndex = parseInt(req.params.docIndex);
-        
+
         if (isNaN(docIndex)) {
             return res.status(400).json({
                 success: false,
@@ -106,9 +108,9 @@ export const downloadDocumentController = async (req, res) => {
         }
 
         const document = task.documents[docIndex];
-        const filePath = path.join(__dirname, '..', '..', document.path);
-        
-        // Check if file exists
+        // Use absolute path for file
+        const filePath = path.resolve(document.path);
+
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({
                 success: false,
@@ -126,11 +128,13 @@ export const downloadDocumentController = async (req, res) => {
         });
     }
 };
-export const updateTaskController = async function (req, res) {
+
+// Update Task Controller
+export const updateTaskController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
         const updateData = req.body;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const userType = req.user.usertype;
         const updatedTask = await updateTaskService(taskId, updateData, userId, userType);
         return res.status(200).json({
@@ -143,10 +147,10 @@ export const updateTaskController = async function (req, res) {
     }
 };
 
-export const deleteTaskController = async function (req, res) {
+// Delete Task Controller
+export const deleteTaskController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-
         const response = await deleteTaskService(taskId);
         res.status(201).send({
             success: true,
@@ -156,14 +160,15 @@ export const deleteTaskController = async function (req, res) {
     } catch (error) {
         console.error("Error in deleting Task controller", error);
         res.status(500).send({
-        success: false,
-        message: "Internal Server Error",
-        error: error.message
-      });
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
 };
 
-export const getAllTaskController = async function (req, res) {
+// Get All Tasks Controller
+export const getAllTaskController = async (req, res) => {
     try {
         const response = await getAllTaskService();
         res.status(201).send({
@@ -174,14 +179,15 @@ export const getAllTaskController = async function (req, res) {
     } catch (error) {
         console.error("Error in get all Task controller", error);
         res.status(500).send({
-        success: false,
-        message: "Internal Server Error",
-        error: error.message
-      });
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
 };
 
-export const getTaskByUserController = async function (req, res) {
+// Get Tasks by User Controller
+export const getTaskByUserController = async (req, res) => {
     try {
         const userId = req.params.userId;
 
@@ -206,14 +212,15 @@ export const getTaskByUserController = async function (req, res) {
             message: "Internal Server Error",
             error: error.message
         });
-    }  
+    }
 };
 
-
+// Modify Task Controller (detailed update)
 export const modifyTaskController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
         const { title, description, deadline, priority, status, assignedTo } = req.body;
+
         console.log('Received update request for task:', taskId);
         console.log('Update data:', { title, description, deadline, priority, status, assignedTo });
 
@@ -221,12 +228,11 @@ export const modifyTaskController = async (req, res) => {
         const existingTask = await taskRepository.getTaskById(taskId);
         if (!existingTask) {
             console.log('Task not found:', taskId);
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Task not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Task not found'
             });
         }
-        console.log('Existing task:', existingTask);
 
         // Validate required fields
         if (!title || !description || !deadline || !priority || !status || !assignedTo) {
@@ -246,6 +252,7 @@ export const modifyTaskController = async (req, res) => {
             status,
             assignedTo
         });
+
         console.log('Task updated:', updatedTask);
 
         if (!updatedTask) {
@@ -270,17 +277,16 @@ export const modifyTaskController = async (req, res) => {
         });
     }
 };
+
+// Get Admin Tasks Controller
 export const getAdminTasks = async (req, res) => {
+    console.log("✅ Inside getAdminTasks function");
 
-    console.log("✅ Inside getAdmintasks function");
-
-    
     console.log("✅ Decoded Admin ID from Token (req.user.id):", req.user.id);
     console.log("✅ Admin ID from Query (req.query.adminId):", req.query.adminId);
 
-    // Ensure both are strings for comparison
     const decodedAdminId = req.user.id.toString();
-    const queryAdminId = req.query.adminId.toString();
+    const queryAdminId = req.query.adminId?.toString();
 
     console.log("🔍 After Conversion → Token ID:", decodedAdminId, " | Query ID:", queryAdminId);
 
@@ -295,7 +301,7 @@ export const getAdminTasks = async (req, res) => {
     try {
         const tasks = await Task.find({ assignedBy: req.user.id });
         console.log("✅ Found Tasks:", tasks);
-        
+
         res.status(200).json({
             success: true,
             tasks
@@ -309,11 +315,11 @@ export const getAdminTasks = async (req, res) => {
     }
 };
 
-// User requests review
-export const userRequestReviewController = async function (req, res) {
+// User Requests Review Controller
+export const userRequestReviewController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const userType = req.user.usertype;
         const updateData = { status: 'review-requested' };
         const updatedTask = await updateTaskService(taskId, updateData, userId, userType);
@@ -327,11 +333,11 @@ export const userRequestReviewController = async function (req, res) {
     }
 };
 
-// Admin approves task
-export const adminApproveTaskController = async function (req, res) {
+// Admin Approves Task Controller
+export const adminApproveTaskController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const userType = req.user.usertype;
         const updateData = { status: 'completed' };
         const updatedTask = await updateTaskService(taskId, updateData, userId, userType);
@@ -345,11 +351,11 @@ export const adminApproveTaskController = async function (req, res) {
     }
 };
 
-// Admin rejects task
-export const adminRejectTaskController = async function (req, res) {
+// Admin Rejects Task Controller
+export const adminRejectTaskController = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const userType = req.user.usertype;
         const { rejectionReason } = req.body;
         const updateData = { status: 'rejected', rejectionReason };

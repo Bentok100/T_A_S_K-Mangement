@@ -31,8 +31,8 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "x-access-token"]
 };
 
-app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 

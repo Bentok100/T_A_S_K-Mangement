@@ -4,7 +4,7 @@ import upload from '../config/multerConfig.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import Task from '../models/taskModel.js'; // Adjust path as needed
+import Task from '../models/tasksModel.js'; // Adjust path as needed
 
 // Define __dirname for ES module
 const __filename = fileURLToPath(import.meta.url);
